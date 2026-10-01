@@ -1,0 +1,36 @@
+{% extends "base.html" %}{% block title %}Smart Expense Tracker{% endblock %}
+{% block content %}
+<section class="hero">
+<div class="hero-copy"><div class="eyebrow">SMART MONEY MANAGEMENT • INDIA</div><h1>Know where your money goes.<br><span>Decide where it goes next.</span></h1>
+<p>Track expenses, plan budgets, understand spending patterns and build healthier financial habits — all in one beautiful dashboard.</p>
+<div class="hero-actions">
+    <a class="btn btn-primary" href="{% url 'register' %}">
+        Start Free Trial →
+    </a>
+    <a class="btn btn-soft" href="{% url 'login' %}">
+        I already have an account →
+    </a>
+</div>
+
+<div class="trust">
+    <span>✓ 30-day free trial</span>
+    <span>✓ ₹99 Premium after trial</span>
+    <span>✓ ₹ INR ready</span>
+</div>
+<div class="hero-art"><div class="phone"><div class="phone-top">SmartExpense <span>•••</span></div><div class="mini-card"><small>Total Balance</small><strong>₹48,250</strong><em>+12.8% this month</em></div><div class="mini-bars"><i style="height:35%"></i><i style="height:58%"></i><i style="height:42%"></i><i style="height:78%"></i><i style="height:63%"></i><i style="height:88%"></i></div><div class="mini-list"><div>🍔 Food <b>₹4,820</b></div><div>🚗 Transport <b>₹2,150</b></div><div>🛍️ Shopping <b>₹3,760</b></div></div></div></div>
+</section>
+<section class="section"><div class="section-head"><div><div class="eyebrow">EVERYTHING IN ONE PLACE</div><h2>Powerful features, simple experience.</h2></div></div>
+<div class="feature-grid">
+<div class="feature"><div class="feature-icon">📊</div><h3>Smart Dashboard</h3><p>See income, expenses, balance, recent activity and category trends at a glance.</p></div>
+<div class="feature"><div class="feature-icon">🎯</div><h3>Budget Planning</h3><p>Set monthly limits and instantly see how much you have spent and what remains.</p></div>
+<div class="feature"><div class="feature-icon">🔎</div><h3>Expense Search</h3><p>Filter transactions by title, category or income/expense type.</p></div>
+<div class="feature"><div class="feature-icon">📈</div><h3>Reports & Insights</h3><p>Understand monthly trends and your biggest spending categories with charts.</p></div>
+<div class="feature"><div class="feature-icon">🔐</div><h3>Private Accounts</h3><p>Each user sees only their own financial records and budgets.</p></div>
+<div class="feature"><div class="feature-icon">📱</div><h3>Responsive UI</h3><p>Use the tracker comfortably on desktop, tablet or mobile screens.</p></div>
+</div></section>
+<section class="cta"><h2>Turn daily spending into better decisions.</h2><p>Start with one transaction today and build a clearer picture of your finances.</p>
+<a class="btn btn-light" href="{% url 'register' %}">
+    Start Free Trial →
+</a>
+</section>
+{% endblock %}

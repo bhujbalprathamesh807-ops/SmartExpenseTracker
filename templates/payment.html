@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Pay ₹{{ registration_fee|floatformat:0 }} - Smart Expense Tracker{% endblock %}
+{% block content %}
+<div class="payment-page">
+  <div class="payment-container">
+    <div class="payment-header">
+      <div class="payment-icon">₹</div>
+      <div class="eyebrow">SMART EXPENSE TRACKER</div>
+      <h1>Activate Premium for ₹{{ registration_fee|floatformat:0 }}</h1>
+      <p>Your 30-day free trial has ended. Complete the ₹99 payment to unlock your dashboard and premium features.</p>
+    </div>
+
+    <div class="payment-card">
+      <div class="payment-summary"><div><span>Smart Expense Tracker</span><small>Premium access</small></div><strong>₹{{ registration_fee|floatformat:0 }}</strong></div>
+      <div class="divider"></div>
+
+      {% if razorpay_order %}
+      <div class="qr-payment-box">
+        <div class="upi-title">🔐 Secure payment</div>
+        <p class="muted">Pay with UPI, card or net banking. Payment is verified by the server before you continue.</p>
+        <button id="rzpButton" class="btn btn-primary full" type="button">Open UPI App & Pay ₹{{ registration_fee|floatformat:0 }}</button>
+        <p class="scan-status">After successful payment, your Premium access will be activated and your dashboard will open automatically.</p>
+      </div>
+      {% else %}
+      <div class="qr-payment-box">
+        <div class="upi-title">📲 UPI payment</div>
+        <p class="muted">This is the fallback QR. A static QR by itself cannot send a verified payment callback to this Django app.</p>
+        <div class="qr-frame"><img src="{% static 'img/payment_qr.jpg' %}" alt="UPI QR code"></div>
+        <div class="qr-amount">₹{{ registration_fee|floatformat:0 }}</div>
+        <div class="qr-payee">{{ upi_name }}</div><div class="qr-upi">{{ upi_id }}</div>
+        <a class="btn btn-primary full" href="upi://pay?pa={{ upi_id|urlencode }}&pn={{ upi_name|urlencode }}&am={{ registration_fee }}&cu=INR&tn=Smart%20Expense%20Tracker">Open UPI App & Pay ₹{{ registration_fee|floatformat:0 }}</a>
+        {% if payment_demo_mode %}
+        <form method="post" action="{% url 'payment_success' %}" class="payment-confirm-form">{% csrf_token %}<button class="pay-button full" type="submit">Demo: I have paid → Continue</button></form>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <div class="divider"></div>
+      <p class="muted small-note">Never enter your UPI PIN on this website. The PIN is entered only inside your UPI/banking app.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+{% if razorpay_order %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+const options = {
+  key: "{{ razorpay_key_id|escapejs }}",
+  amount: {{ razorpay_order.amount }},
+  currency: "INR",
+  name: "Smart Expense Tracker",
+  description: "Premium access",
+  order_id: "{{ razorpay_order.id|escapejs }}",
+  handler: function (response) {
+    const form = document.createElement('form'); form.method='POST'; form.action='{% url "payment_success" %}';
+    const token=document.createElement('input'); token.type='hidden'; token.name='csrfmiddlewaretoken'; token.value='{{ csrf_token }}'; form.appendChild(token);
+    ['razorpay_payment_id','razorpay_order_id','razorpay_signature'].forEach(k=>{const i=document.createElement('input');i.type='hidden';i.name=k;i.value=response[k]||'';form.appendChild(i);});
+    document.body.appendChild(form); form.submit();
+  },
+  theme: {color: "#4f46e5"}
+};
+document.getElementById('rzpButton').onclick = () => new Razorpay(options).open();
+</script>
+{% endif %}
+{% endblock %}

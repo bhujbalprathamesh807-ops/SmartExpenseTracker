@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}EMI Manager{% endblock %}
+{% block content %}
+<div class="page-head"><div><div class="eyebrow">LOAN PLANNER</div><h1>EMI Manager</h1><p>Calculate EMI, total interest and record each paid installment.</p></div></div>
+<div class="budget-layout emi-layout">
+<section>
+{% for e in emis %}
+<div class="panel budget-card">
+  <div class="budget-head"><div><span class="budget-icon">🏦</span><div><h3>{{ e.loan_name }}</h3><small>{{ e.lender }} • {{ e.annual_interest_rate }}% p.a.</small></div></div><b>₹{{ e.monthly_emi|floatformat:2 }}/month</b></div>
+  <div class="emi-grid">
+    <div><small>Principal</small><b>₹{{ e.principal|floatformat:2 }}</b></div>
+    <div><small>Total Interest</small><b>₹{{ e.total_interest|floatformat:2 }}</b></div>
+    <div><small>Total Payable</small><b>₹{{ e.total_payable|floatformat:2 }}</b></div>
+    <div><small>Remaining EMIs</small><b>{{ e.remaining_installments }} / {{ e.tenure_months }}</b></div>
+    <div><small>Outstanding Principal</small><b>₹{{ e.outstanding_principal|floatformat:2 }}</b></div>
+    <div><small>Remaining Interest</small><b>₹{{ e.remaining_interest|floatformat:2 }}</b></div>
+  </div>
+  {% if e.remaining_installments %}<form method="post" action="{% url 'emi_pay' e.id %}">{% csrf_token %}<button class="btn btn-primary" type="submit">Record EMI Payment ₹{{ e.monthly_emi|floatformat:2 }}</button></form>{% else %}<span class="pill pill-green">Completed</span>{% endif %}
+</div>
+{% empty %}<div class="panel empty">No EMI plans yet. Add your first loan on the right.</div>{% endfor %}
+</section>
+<section class="panel form-card"><h2>Add EMI / Loan</h2><p>Enter the loan details. The monthly EMI is calculated automatically.</p><form method="post">{% csrf_token %}{% for f in form %}<label>{{ f.label }}{{ f }}{% for e in f.errors %}<small class="error">{{ e }}</small>{% endfor %}</label>{% endfor %}<button class="btn btn-primary full" type="submit">Calculate & Save EMI</button></form></section>
+</div>
+{% endblock %}

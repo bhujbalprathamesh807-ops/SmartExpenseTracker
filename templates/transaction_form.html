@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="form-page">
+  <div class="form-card wide">
+    <div class="eyebrow">TRANSACTION</div>
+    <h1>{{ title }}</h1>
+    <p>Choose the fastest method: scan a receipt/UPI screenshot with OCR, or enter the transaction manually.</p>
+
+    {% if title == "Add Transaction" %}
+    <div class="scanner-box">
+      <h3>📷 OCR Smart Scanner</h3>
+      <p>Upload a clear receipt, bill or UPI screenshot. OCR looks for INR/₹ amounts, merchant/title, date, reference and likely category. <b>Always review the detected values before saving.</b></p>
+      <input id="receiptImageScanner" type="file" accept="image/*" class="form-control">
+      <div id="receiptPreviewWrap" class="receipt-preview-wrap" hidden><img id="receiptPreview" alt="Receipt preview"></div>
+      <button type="button" id="scanBtn" class="btn btn-primary full" style="margin-top:10px">Scan & Fill Transaction</button>
+      <div id="scanStatus" class="scan-status" aria-live="polite"></div>
+    </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" id="transactionForm">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}<div class="error">{{ form.non_field_errors }}</div>{% endif %}
+
+      <label for="{{ form.title.id_for_label }}">Title</label>
+      {{ form.title }}
+      {% for e in form.title.errors %}<span class="error">{{ e }}</span>{% endfor %}
+
+      <label for="{{ form.amount.id_for_label }}">Amount (₹)</label>
+      {{ form.amount }}
+      {% for e in form.amount.errors %}<span class="error">{{ e }}</span>{% endfor %}
+      <small class="muted">Example: 1250.50</small>
+
+      <label for="{{ form.category.id_for_label }}">Category</label>
+      {{ form.category }}
+
+      <label for="{{ form.transaction_type.id_for_label }}">Transaction Type</label>
+      {{ form.transaction_type }}
+
+      <label for="{{ form.payment_method.id_for_label }}">Payment Method</label>
+      {{ form.payment_method }}
+
+      <label for="{{ form.date.id_for_label }}">Date</label>
+      {{ form.date }}
+
+      <label for="{{ form.note.id_for_label }}">Note</label>
+      {{ form.note }}
+
+      <label for="{{ form.receipt_items.id_for_label }}">Receipt Items</label>
+      {{ form.receipt_items }}
+
+      <label for="{{ form.receipt_number.id_for_label }}">Receipt / Transaction Reference</label>
+      {{ form.receipt_number }}
+
+      <label for="{{ form.receipt_image.id_for_label }}">Receipt Image</label>
+      {{ form.receipt_image }}
+
+      <div class="form-actions">
+        <a class="btn btn-soft" href="{% url 'transactions' %}">Cancel</a>
+        <button type="submit" class="btn btn-primary">Save Transaction</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if title == "Add Transaction" %}
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+(() => {
+  const fileInput = document.getElementById('receiptImageScanner');
+  const scanBtn = document.getElementById('scanBtn');
+  const status = document.getElementById('scanStatus');
+  const previewWrap = document.getElementById('receiptPreviewWrap');
+  const preview = document.getElementById('receiptPreview');
+  const form = document.getElementById('transactionForm');
+  const savedImage = document.getElementById('id_receipt_image');
+  if (!fileInput || !form) return;
+
+  const field = name => document.getElementById('id_' + name);
+  const setValue = (name, value) => { const el = field(name); if (el) el.value = String(value ?? '').trim(); };
+  const setSelect = (name, value) => { const el = field(name); if (el) el.value = value; };
+  const setSelectByText = (name, wanted) => {
+    const el = field(name); if (!el) return;
+    const w = String(wanted).toLowerCase();
+    const opt = [...el.options].find(o => o.text.toLowerCase().includes(w) || o.value.toLowerCase() === w);
+    if (opt) el.value = opt.value;
+  };
+  const linesOf = text => String(text || '').replace(/\r/g, '').split(/\n/).map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean);
+
+  function cleanNumber(raw) {
+    let s = String(raw || '')
+      .replace(/[₹]/g, '')
+      .replace(/\b(?:INR|Rs|R\.S|R)\b/ig, '')
+      .replace(/\s+/g, '')
+      .replace(/([0-9])[oO](?=[0-9])/g, '$10')
+      .replace(/[lI](?=[0-9])/g, '1')
+      .replace(/[^0-9.]/g, '');
+    if ((s.match(/\./g) || []).length > 1) {
+      const last = s.lastIndexOf('.');
+      s = s.slice(0, last).replace(/\./g, '') + s.slice(last);
+    }
+    const n = Number(s);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  // Amount rule: currency-symbol/INR lines are strongly preferred. Date/time,
+  // GST, quantity and item-price lines are explicitly rejected.
+  function bestAmount(text) {
+    const lines = linesOf(text);
+    const candidates = [];
+    const amountRe = /(?:₹|rs\.?|inr)\s*([0-9][0-9,\s]*(?:\.[0-9]{1,2})?)/ig;
+    lines.forEach((line, index) => {
+      const bad = /(date|time|invoice\s*(?:no|number)?|bill\s*(?:no|number)?|gst|cgst|sgst|tax|qty|quantity|unit\s*price|subtotal|sub\s*total|discount|change|balance)/i.test(line);
+      for (const m of line.matchAll(amountRe)) {
+        const n = cleanNumber(m[1]);
+        if (n === null || n <= 0 || n >= 100000000 || bad) continue;
+        let score = 100 + (/(grand\s*total|total\s*amount|net\s*(?:amount|payable)|amount\s*paid|amount\s*payable|payable|you\s*paid|paid\s*amount|transaction\s*amount)/i.test(line) ? 100 : 0);
+        score += /₹/.test(line) ? 50 : 0;
+        score += /(?:rs\.?|inr)/i.test(line) ? 25 : 0;
+        candidates.push({n, score, index});
+      }
+    });
+    if (candidates.length) {
+      candidates.sort((a,b) => (b.score-a.score) || (a.index-b.index));
+      return candidates[0].n;
+    }
+
+    // Fallback only when there is no currency-marked amount: labelled totals.
+    const totalRe = /(?:grand\s*total|total\s*amount|net\s*(?:amount|payable)|amount\s*paid|amount\s*payable|you\s*paid|paid\s*amount)\D{0,20}([0-9][0-9,\s]*(?:\.[0-9]{1,2})?)/ig;
+    for (const m of String(text || '').matchAll(totalRe)) {
+      const n = cleanNumber(m[1]);
+      if (n !== null && n > 0 && n < 100000000) return n;
+    }
+    return null;
+  }
+
+  function parseDate(text) {
+    const lines = linesOf(text);
+    const labelled = lines.filter(x => /(transaction\s*date|payment\s*date|paid\s*on|date\s*(?:and|&)\s*time|^date\b)/i.test(x));
+    const pool = [...labelled, ...lines];
+    const patterns = [
+      /\b(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})\b/,
+      /\b(\d{4})[\/.-](\d{1,2})[\/.-](\d{1,2})\b/,
+      /\b(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+(\d{2,4})\b/i,
+      /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+(\d{1,2}),?\s+(\d{2,4})\b/i
+    ];
+    const months = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,sept:9,oct:10,nov:11,dec:12};
+    for (const line of pool) {
+      for (const re of patterns) {
+        const m = line.match(re); if (!m) continue;
+        let y, mo, d;
+        if (/^\d{4}/.test(m[1])) { y=+m[1]; mo=+m[2]; d=+m[3]; }
+        else if (/^[a-z]/i.test(m[1])) { mo=months[m[1].toLowerCase()]; d=+m[2]; y=+m[3]; }
+        else if (/^[a-z]/i.test(m[2])) { d=+m[1]; mo=months[m[2].toLowerCase()]; y=+m[3]; }
+        else { d=+m[1]; mo=+m[2]; y=+m[3]; }
+        if (y < 100) y += 2000;
+        if (y >= 2000 && mo >= 1 && mo <= 12 && d >= 1 && d <= 31) return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      }
+    }
+    return new Date().toLocaleDateString('en-CA');
+  }
+
+  function setDefaults() {
+    setValue('title', 'Scanned Transaction');
+    setValue('amount', '');
+    setSelectByText('category', 'Other');
+    setSelect('transaction_type', 'expense');
+    setSelect('payment_method', 'UPI');
+    setValue('date', new Date().toLocaleDateString('en-CA'));
+    setValue('note', 'Automatically captured by Smart Expense Scanner.');
+    setValue('receipt_items', '');
+    setValue('receipt_number', '');
+  }
+
+  function parseReceipt(text) {
+    const clean = String(text || '').replace(/\r/g, '');
+    const lines = linesOf(clean);
+    setDefaults();
+    const amount = bestAmount(clean);
+    if (amount !== null) setValue('amount', amount.toFixed(2));
+
+    const incoming = /(received|credited|credit\s+to|refund|cashback|salary|money\s+received)/i.test(clean);
+    setSelect('transaction_type', incoming ? 'income' : 'expense');
+    if (/(upi|google\s*pay|gpay|phonepe|paytm|upi\s*id)/i.test(clean)) setSelect('payment_method', 'UPI');
+    else if (/(credit\s*card|debit\s*card|card\s+ending)/i.test(clean)) setSelect('payment_method', 'Card');
+    else if (/(neft|imps|rtgs|bank\s+transfer|banking)/i.test(clean)) setSelect('payment_method', 'Bank');
+    else if (/\bcash\b/i.test(clean)) setSelect('payment_method', 'Cash');
+
+    const merchant = (lines.find(x => /(merchant|paid to|sent to|shop|store|mart|supermarket|restaurant|ltd|pvt)/i.test(x)) || lines.find(x => x.length >= 3 && !/^(payment|transaction|successful|completed|amount|total|date|time|upi|inr|rs|invoice|bill|receipt|scan)/i.test(x)) || '').replace(/[|_*]+/g, ' ').trim();
+    if (merchant) setValue('title', merchant.slice(0,150));
+    if (/(grocery|supermarket|mart|vegetable|fruit|milk|bread|rice|wheat|dal|snack|food)/i.test(clean)) setSelectByText('category', 'Food');
+    else if (/(fuel|petrol|diesel|uber|ola|bus|train|metro)/i.test(clean)) setSelectByText('category', 'Transport');
+    else if (/(medicine|pharmacy|hospital|medical)/i.test(clean)) setSelectByText('category', 'Health');
+    else if (/(movie|netflix|spotify|game)/i.test(clean)) setSelectByText('category', 'Entertainment');
+    else if (/(salary|payroll|credited)/i.test(clean)) setSelectByText('category', 'Salary');
+    else if (merchant) setSelectByText('category', 'Shopping');
+
+    setValue('date', parseDate(clean));
+    const ref = clean.match(/(?:upi\s*(?:ref|reference|txn|transaction)|transaction\s*(?:id|no)|utr|invoice\s*(?:no|number)|bill\s*(?:no|number))\s*[:#-]?\s*([A-Z0-9][A-Z0-9\-_/]{4,})/i);
+    if (ref) setValue('receipt_number', ref[1]);
+    const itemLines = lines.filter(x => /(?:\d[\s*xX@×]+\d|₹|rs\.?|\d+\.\d{2})/.test(x) && !/(grand|sub\s*total|total|tax|gst|discount|change|cash|paid|balance|invoice|bill\s*no|date|time)/i.test(x));
+    if (itemLines.length) setValue('receipt_items', itemLines.slice(0,30).join('\n'));
+    setValue('note', `Auto captured by OCR${ref ? ' • Reference: ' + ref[1] : ''}`);
+  }
+
+  async function preprocess(file) {
+    const bitmap = await createImageBitmap(file);
+    const maxWidth = 2200;
+    const scale = Math.min(3, Math.max(1, maxWidth / bitmap.width));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale); canvas.height = Math.round(bitmap.height * scale);
+    const ctx = canvas.getContext('2d', {willReadFrequently:true});
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const img = ctx.getImageData(0,0,canvas.width,canvas.height);
+    for (let i=0;i<img.data.length;i+=4) {
+      const gray = 0.299*img.data[i] + 0.587*img.data[i+1] + 0.114*img.data[i+2];
+      const contrast = Math.max(0, Math.min(255, (gray-128)*1.65+128));
+      img.data[i]=img.data[i+1]=img.data[i+2]=contrast;
+    }
+    ctx.putImageData(img,0,0);
+    return await new Promise(resolve => canvas.toBlob(resolve,'image/png'));
+  }
+
+  async function scanReceipt(file) {
+    if (!file) return;
+    if (scanBtn) scanBtn.disabled = true;
+    status.textContent = 'Preparing image…';
+    try {
+      const processed = await preprocess(file);
+      status.textContent = 'Scanning automatically…';
+      const [a,b] = await Promise.all([
+        Tesseract.recognize(file,'eng',{logger:m=>{if(m.status==='recognizing text') status.textContent=`Scanning… ${Math.round((m.progress||0)*100)}%`;}}),
+        Tesseract.recognize(processed,'eng',{logger:m=>{if(m.status==='recognizing text') status.textContent=`Reading receipt… ${Math.round((m.progress||0)*100)}%`;}})
+      ]);
+      const text = `${a.data.text}\n${b.data.text}`;
+      parseReceipt(text);
+      try { const dt=new DataTransfer(); dt.items.add(file); savedImage.files=dt.files; } catch (_) {}
+      const amount=field('amount')?.value;
+      status.textContent = amount ? `✓ Auto scan complete — Amount ₹${amount}. Please verify and save.` : '✓ Scan complete — amount not found; enter it manually.';
+    } catch (err) {
+      console.error(err);
+      status.textContent='Could not read this image. Use a clearer receipt/screenshot or enter the transaction manually.';
+    } finally { if (scanBtn) scanBtn.disabled=false; }
+  }
+
+  fileInput.addEventListener('change', () => {
+    const file=fileInput.files[0]; if (!file) return;
+    preview.src=URL.createObjectURL(file); previewWrap.hidden=false;
+    try { const dt=new DataTransfer(); dt.items.add(file); savedImage.files=dt.files; } catch (_) {}
+    // No button click is required: uploading the image starts OCR immediately.
+    scanReceipt(file);
+  });
+  if (scanBtn) scanBtn.addEventListener('click', () => scanReceipt(fileInput.files[0]));
+})();
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Create Account - Smart Expense Tracker{% endblock %}
+
+{% block content %}
+<div class="register-page">
+  <div class="register-card">
+    <div class="register-header">
+      <div class="register-icon">👤</div>
+      <div class="eyebrow">SMART EXPENSE TRACKER</div>
+      <h1>Create Your Account</h1>
+      <p>Create your account and get a 30-day free trial. No payment is required today.</p>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      <label for="first_name">Name <span class="muted">(optional)</span></label>
+      <input id="first_name" type="text" name="first_name" placeholder="Your name">
+
+      <label for="username">Username</label>
+      <input id="username" type="text" name="username" placeholder="Choose a username" required>
+
+      <label for="email">Email</label>
+      <input id="email" type="email" name="email" placeholder="you@example.com" required>
+
+      <label for="password">Password</label>
+      <input id="password" type="password" name="password" placeholder="At least 6 characters" required>
+
+      <label for="confirm_password">Confirm Password</label>
+      <input id="confirm_password" type="password" name="confirm_password" placeholder="Repeat password" required>
+
+      <button class="btn btn-primary full" type="submit">Create Account</button>
+    </form>
+
+    <div class="login-link">Already have an account? <a href="{% url 'login' %}">Login here</a></div>
+    <div class="login-link">✓ 30-day free trial • Premium ₹99 after trial</div>
+  </div>
+</div>
+{% endblock %}

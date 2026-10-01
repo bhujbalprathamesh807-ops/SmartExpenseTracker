@@ -1,0 +1,2 @@
+{% extends "base.html" %}{% block title %}Profile{% endblock %}
+{% block content %}<div class="form-page"><div class="form-card"><div class="profile-avatar">{{user.first_name|default:user.username|first|upper}}</div><div class="eyebrow">ACCOUNT</div><h1>{{user.get_full_name|default:user.username}}</h1><p>{{user.email}}</p><form method="post" enctype="multipart/form-data">{% csrf_token %}{% for f in form %}<label>{{f.label}}{{f}}</label>{% endfor %}<button class="btn btn-primary">Save Profile</button></form></div></div>{% endblock %}

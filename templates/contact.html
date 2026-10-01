@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Contact Us - Smart Expense Tracker{% endblock %}
+
+{% block content %}
+
+<div class="contact-page">
+
+    <div class="contact-hero">
+
+        <div class="eyebrow">GET IN TOUCH</div>
+
+        <h1>We're here to help.</h1>
+
+        <p>
+            Have a question about Smart Expense Tracker?
+            Need help with your account, expenses, budgets or reports?
+            Send us a message and we'll be happy to help.
+        </p>
+
+    </div>
+
+
+    <div class="contact-layout">
+
+        <!-- CONTACT INFORMATION -->
+        <div class="contact-info">
+
+            <div class="contact-card">
+
+                <div class="contact-icon">📧</div>
+
+                <div>
+                    <h3>Email Support</h3>
+                    <p>
+                        For questions, feedback and technical support.
+                    </p>
+
+                    <a href="mailto:support@smartexpense.local">
+                        support@smartexpense.local
+                    </a>
+                </div>
+
+            </div>
+
+
+            <div class="contact-card">
+
+                <div class="contact-icon">💰</div>
+
+                <div>
+                    <h3>Payment Support</h3>
+                    <p>
+                        Questions regarding the ₹99 access payment
+                        or payment process.
+                    </p>
+
+                    <span>Payment & Registration Assistance</span>
+                </div>
+
+            </div>
+
+
+            <div class="contact-card">
+
+                <div class="contact-icon">📊</div>
+
+                <div>
+                    <h3>Expense Tracker</h3>
+                    <p>
+                        Get help with adding transactions, managing budgets,
+                        reports and expense tracking.
+                    </p>
+
+                    <span>Smart Expense Management</span>
+                </div>
+
+            </div>
+
+
+            <div class="contact-card">
+
+                <div class="contact-icon">🛠️</div>
+
+                <div>
+                    <h3>Technical Information</h3>
+                    <p>
+                        Python, Django, PostgreSQL, HTML, CSS and JavaScript.
+                    </p>
+
+                    <span>Web Application</span>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- CONTACT FORM -->
+        <div class="contact-form-card">
+
+            <div class="eyebrow">SEND A MESSAGE</div>
+
+            <h2>How can we help?</h2>
+
+            <p class="form-description">
+                Fill in the form below and provide details about your
+                question or feedback.
+            </p>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="contact-message">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+
+            <form method="POST">
+
+                {% csrf_token %}
+
+                <div class="form-group">
+
+                    <label for="name">
+                        Full Name
+                    </label>
+
+                    <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        placeholder="Enter your name"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="email">
+                        Email Address
+                    </label>
+
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="Enter your email"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="subject">
+                        Subject
+                    </label>
+
+                    <select id="subject" name="subject" required>
+
+                        <option value="">
+                            Select a subject
+                        </option>
+
+                        <option value="Account">
+                            Account & Registration
+                        </option>
+
+                        <option value="Payment">
+                            Payment
+                        </option>
+
+                        <option value="Expense">
+                            Expense Tracking
+                        </option>
+
+                        <option value="Budget">
+                            Budget
+                        </option>
+
+                        <option value="Reports">
+                            Reports & Insights
+                        </option>
+
+                        <option value="Technical">
+                            Technical Issue
+                        </option>
+
+                        <option value="Feedback">
+                            Feedback / Suggestion
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="message">
+                        Message
+                    </label>
+
+                    <textarea
+                        id="message"
+                        name="message"
+                        rows="6"
+                        placeholder="Write your message here..."
+                        required
+                    ></textarea>
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="btn btn-primary contact-submit"
+                >
+                    Send Message →
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <!-- PROJECT INFORMATION -->
+    <div class="contact-bottom">
+
+        <div>
+            <div class="eyebrow">SMART EXPENSE TRACKER</div>
+
+            <h2>Manage your money with confidence.</h2>
+
+            <p>
+                Track your income and expenses, create budgets,
+                understand spending patterns and make better financial
+                decisions from one simple dashboard.
+            </p>
+        </div>
+
+        <div class="contact-action">
+
+            <span>Ready to get started?</span>
+
+            <a
+                class="btn btn-primary"
+                href="{% url 'register' %}"
+            >
+                Create Account Free →
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% block title %}Reports{% endblock %}
+{% block content %}<div class="page-head"><div><div class="eyebrow">ANALYTICS</div><h1>Reports & Insights</h1><p>Understand your spending patterns and monthly trend.</p></div></div>
+<div class="report-grid"><section class="panel"><div class="panel-head"><h2>Monthly spending</h2></div><div class="chart-box tall"><canvas id="monthlyChart"></canvas></div></section><section class="panel"><div class="panel-head"><h2>Yearly category breakdown</h2></div><div class="chart-box tall"><canvas id="reportChart"></canvas></div></section></div>
+<section class="panel insight"><h2>Smart insights</h2><div class="insight-grid"><div><span>💡</span><b>Track consistently</b><p>Recording even small expenses makes your reports more accurate.</p></div><div><span>🎯</span><b>Use budgets</b><p>Set category limits so you can spot overspending before it becomes a problem.</p></div><div><span>📅</span><b>Review monthly</b><p>Compare your monthly totals and adjust your next month’s plan.</p></div></div></section>
+{% endblock %}{% block scripts %}<script>
+const months={{monthly|safe|json_script:"monthlydata"}}; const md=JSON.parse(document.getElementById("monthlydata").textContent);
+new Chart(document.getElementById("monthlyChart"),{type:"line",data:{labels:md.map(x=>x.label),datasets:[{label:"Expenses",data:md.map(x=>x.value),tension:.35,fill:true}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+const cats={{rows|safe|json_script:"rowsdata"}}; const rd=JSON.parse(document.getElementById("rowsdata").textContent);
+new Chart(document.getElementById("reportChart"),{type:"bar",data:{labels:rd.map(x=>x.name),datasets:[{label:"Spent",data:rd.map(x=>x.value),borderRadius:8}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+</script>{% endblock %}
