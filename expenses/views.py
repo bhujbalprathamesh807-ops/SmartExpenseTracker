@@ -21,7 +21,7 @@ from functools import wraps
 from .forms import BudgetForm, EMIForm, ProfileForm, TransactionForm
 from .models import Budget, Category, ContactMessage, EMI, Payment, Transaction, UserProfile
 
-REGISTRATION_FEE = Decimal(getattr(settings, "REGISTRATION_FEE", "199.00"))
+REGISTRATION_FEE = Decimal(getattr(settings, "REGISTRATION_FEE", "99.00"))
 RAZORPAY_KEY_ID = getattr(settings, "RAZORPAY_KEY_ID", "")
 RAZORPAY_KEY_SECRET = getattr(settings, "RAZORPAY_KEY_SECRET", "")
 PAYMENT_DEMO_MODE = getattr(settings, "PAYMENT_DEMO_MODE", False)
